@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deploy
+  labels:
+    app: {{ .Values.deploy.app.mariadb }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.deploy.app.mariadb }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deploy.app.mariadb }}
+    spec:
+      containers:
+        - name: {{ .Values.deploy.app.mariadb }}
+          image: "mariadb:10.11.9-jammy"
+          ports:
+            - containerPort: {{ .Values.deploy.port.mariadb }}
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: db-secret
+          env:
+            - name: TZ
+              value: Asia/Seoul
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mariadb-storage
+      volumes:
+        - name: mariadb-storage
+          persistentVolumeClaim:
+            claimName: mariadb-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.maraidb.name }}
+spec:
+  type: ClusterIP  # 기본값, 내부 통신에 사용
+  ports:
+    - port: {{ .Values.deploy.port.mariadb }}
+      targetPort: {{ .Values.deploy.port.mariadb }}
+  selector:
+    app: {{ .Values.deploy.app.mariadb }}
